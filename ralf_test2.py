@@ -140,9 +140,11 @@ def test_load_shedding_policy():
     values = [record.value for record in records]
     assert values == [1, 10]
 
-def main(argv):
-    test_mapper()
+# def main(argv):
+#     test_mapper()
 
 
-if __name__ == "__main__":
-    app.run(main)
+# if __name__ == "__main__":
+#     app.run(main)
+
+test_mapper()

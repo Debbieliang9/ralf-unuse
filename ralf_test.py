@@ -33,7 +33,7 @@ experiment_id = ""
 log_wandb = False
 
 
-@ray.remote
+@ray.remote(num_cpus=1)
 class RedisSource(Source):
     def __init__(
         self,
@@ -73,7 +73,7 @@ class RedisSource(Source):
             create_time=time.time(),
         )
         return [record]
-@ray.remote
+@ray.remote(num_cpus=1)
 class RedisSink(Operator):
     def __init__(self, db_id: int, num_worker_threads: int = 1):
         super().__init__(
@@ -85,7 +85,7 @@ class RedisSink(Operator):
     def on_record(self, record: Record):
         self.redis_conn.set(record.key, pickle.dumps(record))
         
-@ray.remote
+@ray.remote(num_cpus=1)
 class DummyTrainer(Operator):
     def __init__(
         self,

@@ -15,7 +15,7 @@ from ralf.table import Table
 from absl import flags, app
 
 
-@ray.remote(num_cpus=1)
+@ray.remote(num_cpus=0)
 class CounterSource(Source):
     def __init__(self, send_up_to: int):
         self.count = 0
@@ -35,7 +35,7 @@ class CounterSource(Source):
         return [Record(key="k", value=self.count)]
 
 
-@ray.remote(num_cpus=1)
+@ray.remote(num_cpus=0)
 class Sink(Operator):
     def __init__(self, result_queue: Queue):
         super().__init__(schema=None, cache_size=DEFAULT_STATE_CACHE_SIZE)
@@ -46,7 +46,7 @@ class Sink(Operator):
         return None
 
 
-@ray.remote(num_cpus=1)
+@ray.remote(num_cpus=0)
 class SlowNoop(Operator):
     def __init__(
         self,
@@ -74,6 +74,7 @@ class SlowNoop(Operator):
 
 
 def test_mapper():
+    ray.init(num_cpus=0)
     ralf = Ralf()
 
     queue = Queue()
@@ -93,6 +94,7 @@ def test_mapper():
 
 
 def test_processing_policy():
+    ray.init(num_cpus=0)
     ralf = Ralf()
 
     queue = Queue()
@@ -115,6 +117,7 @@ def test_processing_policy():
 
 
 def test_load_shedding_policy():
+    ray.init(num_cpus=0)
     ralf = Ralf()
 
     queue = Queue()

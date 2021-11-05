@@ -46,10 +46,12 @@ class ActorPool:
 
     # TODO: remove?
     def get(self, key):
+        print("getttt")
         res = ray.get(self.choose_actor(key).get.remote(key))
         return res
 
     def get_async(self, key) -> ray.ObjectRef:
+        print("get_asynccc")
         return self.choose_actor(key).get.remote(key)
 
     def get_all_async(self) -> List[ray.ObjectID]:
@@ -177,6 +179,7 @@ class Operator(ABC):
             if self._table.schema is not None:
                 key = getattr(event.record, self._table.schema.primary_key)
                 try:
+                    print("6666")
                     current_record = self._table.point_query(key)
                     if self._load_shedding_policy(event.record, current_record):
                         event.process()
@@ -205,6 +208,7 @@ class Operator(ABC):
         self._events.put(event)
 
     def send(self, record: Record):
+        print("sendddd")
         key = getattr(record, self._table.schema.primary_key)
         # update state table
         self._table.update(record)
@@ -257,23 +261,45 @@ class Operator(ABC):
     # Table data query functions
 
     async def get(self, key: str):
+        print("getttt")
         if self._lazy:
-            # Bug: stateful operators that produce output dependent on an
-            # ordered lineage of parent records.
-            parent_records = await asyncio.gather(
-                *[parent.get_async(key) for parent in self.get_parents()]
-            )
+            # # Bug: stateful operators that produce output dependent on an
+            # # ordered lineage of parent records.
+            # parent_records = await asyncio.gather(
+            #     *[parent.get_async(key) for parent in self.get_parents()]
+            # ) # TODO: check the records data structure 
 
-            # Force the thread pool to quickly service the requests.
-            # TODO: submit via the events queue to prioritize requests.
-            futures = []
-            for parent_record in parent_records:
-                task = self._thread_pool.submit(self._on_record_helper, parent_record)
-                futures.append(asyncio.wrap_future(task))
-            await asyncio.gather(*futures)
+            # # Force the thread pool to quickly service the requests.
+            # # TODO: submit via the events queue to prioritize requests.
+            # futures = []
+            # for parent_record in parent_records:
+            #     task = self._thread_pool.submit(self._on_record_helper, parent_record)
+            #     futures.append(asyncio.wrap_future(task))
+            # await asyncio.gather(*futures)   # TODO: how to not use await
+            print("111111")
+            lazy_thread = threading.Thread(target=lazy_get_help, name="lazy_helper", args=(self, key,))
+            lazy_thread.start()
 
         record = self._table.point_query(key)
         return record
+
+    async def lazy_get_help(self, key: str):
+        # Bug: stateful operators that produce output dependent on an
+        # ordered lineage of parent records.
+        parent_records = await asyncio.gather(
+            *[parent.get_async(key) for parent in self.get_parents()]
+        ) # TODO: check the records data structure 
+        print("222222")
+
+        # Force the thread pool to quickly service the requests.
+        # TODO: submit via the events queue to prioritize requests.
+        futures = []
+        for parent_record in parent_records:
+            task = self._thread_pool.submit(self._on_record_helper, parent_record)
+            futures.append(asyncio.wrap_future(task))
+        print("333333")    
+        await asyncio.gather(*futures)   # TODO: how to not use await
+        print("444444")
 
     def get_all(self):
         # TODO: Generate missing values
